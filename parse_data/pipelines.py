@@ -9,6 +9,7 @@ class ParseDataPipeline:
 
     def process_item(self, item, spider):
         self.proxies.append(dict(item))
+        return item
 
     def close_spider(self, spider):
         with open("proxies.json", "w", encoding="utf-8") as f:

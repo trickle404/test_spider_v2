@@ -1,11 +1,7 @@
-import time
 import scrapy
 import json
 
 from scrapy.http import JsonRequest
-from twisted.internet.error import TimeoutError, DNSLookupError
-from twisted.web._newclient import ResponseFailed
-from scrapy.spidermiddlewares.httperror import HttpError
 
 class SenderSpider(scrapy.Spider):
     name = "sender"
@@ -47,7 +43,7 @@ class SenderSpider(scrapy.Spider):
                 data= {
                     "user_id" : "t_1363631d",
                     "len" : 10,
-                    "proxies" : ", ".join(batch)
+                    "proxies" : ", ".join(data)
                 },
                 callback=self.handle_response,
                 errback = self.handle_erorr,
@@ -59,35 +55,9 @@ class SenderSpider(scrapy.Spider):
             )
     
     def handle_response(self, response):
+        if response and response.status == 429:
+            ...
 
-        if response.status in (429, 403):
-            time.sleep(30)
-            yield scrapy.Request(
-                url=self.start_urls[0],
-                callback=self.parse,
-                meta={'cookiejar': 1},
-                dont_filter=True
-            )
-            return
-
-        yield JsonRequest(
-            url=response.url,
-            data=json.loads(response.request.body.decode()),
-            callback=self.handle_response,
-            errback=self.handle_erorr,
-            headers=response.request.headers,
-            meta=response.meta,
-            dont_filter=True
-        )
-
-    def handle_erorr(self, failure):
-        self.logger.error(repr(failure))
-
-        if failure.check(HttpError):
-            response = failure.value.response
-            self.logger.error(f"HttpError on {response.url} — {response.status}")
-            self.logger.error(f"Response body: {response.text}")
-
-        elif failure.check(TimeoutError, DNSLookupError, ResponseFailed):
-            self.logger.error(f"Network error: {failure.value}") 
+    def handle_erorr(self, response):
+        self.logger.error(response)    
         
